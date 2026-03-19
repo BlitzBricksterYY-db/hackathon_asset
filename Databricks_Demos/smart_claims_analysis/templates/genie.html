@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<main role="main" class="col-md-9 col-lg-10 px-md-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h1">Virtual Data Assistant 💡</h1>
+    </div>
+
+    <!-- Welcome Message -->
+    <div id="welcome-message" class="alert alert-light rounded shadow-sm p-4 mb-4">
+        Welcome, {{ user }}. Your AI-powered Data Assistant is ready to help you investigate insurance cases. Ask questions in natural language about claims, policies, or trends, and receive instant insights from our database. Use this tool to quickly gather information for your investigations or analyze patterns across multiple cases.
+    </div>
+
+    <!-- Genie Link Container -->
+    <div class="genie-container text-center p-5">
+        <h2 class="mb-4">Access Databricks Genie</h2>
+        <p class="mb-4">Click below to open the Databricks Genie in a new window.</p>
+        <a href="https://e2-demo-west.cloud.databricks.com/genie/rooms/01ef1221fd6d1735be8b6347f457d651?o=2556758628403379" 
+           target="_blank" 
+           class="btn btn-primary btn-lg">
+            Open Databricks Genie <i class="fas fa-external-link-alt ms-2"></i>
+        </a>
+    </div>
+</main>
+
+<style>
+    .genie-container {
+        width: 100%;
+        margin-bottom: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}

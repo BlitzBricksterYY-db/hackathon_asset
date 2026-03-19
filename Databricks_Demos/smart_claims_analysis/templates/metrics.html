@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1>{{ dashboard_name }}</h1>
+    </div>
+
+    <!-- Welcome Message -->
+    <div id="welcome-message" class="alert alert-light rounded shadow-sm p-4 mb-4">
+        Welcome, {{ user_name }}. The Metrics and KPIs Dashboard provides executive-level insights into your insurance portfolio performance. Monitor key business metrics including loss ratios, premium growth, claims frequency, and customer retention. Track operational efficiency, risk exposure, and financial health indicators to make data-driven decisions for your insurance business.
+    </div>
+    
+    <div class="dashboard-container" style="height: calc(100vh - 120px);">
+        <iframe
+            src="https://e2-demo-west.cloud.databricks.com/embed/dashboardsv3/01ef0408ccba1f83b0e8ac9713214ada?o=2556758628403379&enable_text_selection=true&enable_clipboard=true"
+            width="100%"
+            height="100%"
+            frameborder="0"
+            style="user-select: text !important; -webkit-user-select: text !important; -moz-user-select: text !important;"
+            allow="clipboard-read; clipboard-write">
+        </iframe>
+    </div>
+</div>
+
+<style>
+    .dashboard-container {
+        width: 100%;
+        min-height: 800px;
+        position: relative;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+    }
+</style>
+{% endblock %} 

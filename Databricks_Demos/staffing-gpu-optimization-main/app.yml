@@ -1,0 +1,17 @@
+command: ["uvicorn", "staffing_optimization.backend.app:app", "--workers", "2"]
+
+# Resources are declared by the bundle (databricks.yml) and referenced here via valueFrom.
+# For local dev without bundle resources, set env vars directly.
+env:
+  - name: STAFFING_OPTIMIZATION_DEBUG
+    value: "false"
+  - name: STAFFING_OPTIMIZATION_DEFAULT_CATALOG
+    value: "demos"
+  - name: STAFFING_OPTIMIZATION_DEFAULT_SCHEMA
+    value: "staffing_optimization"
+  - name: STAFFING_OPTIMIZATION_DATABRICKS_JOB_ID
+    valueFrom: app-job
+  - name: DATABRICKS_SQL_WAREHOUSE_ID
+    valueFrom: app-warehouse
+  - name: STAFFING_OPTIMIZATION_LAKEBASE_PROJECT
+    value: "staffing-optimization"

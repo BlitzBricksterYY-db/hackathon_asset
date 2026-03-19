@@ -1,0 +1,42 @@
+[
+  {
+    "date": "2025-04-22 09:18:43",
+    "user_name": "Michael Rodriguez",
+    "case_number": "CA-2024-123456",
+    "policy_number": "102129232",
+    "vin": "1HGCM82633A123456",
+    "car_model": "accord",
+    "action": "Further Investigation",
+    "comments": "Timeline discrepancy between images (summer vs winter). Request policyholder to confirm exact date of incident and provide repair shop estimate."
+  },
+  {
+    "date": "2025-04-20 10:37:28",
+    "user_name": "Alex Tsourmas",
+    "case_number": "CA-2024-123789",
+    "policy_number": "102129544",
+    "vin": "1FATP8UH3K5159877",
+    "car_model": "mustang",
+    "action": "Further Investigation",
+    "comments": "Damage severity exceeds described incident. Requesting police report and witness statements to verify circumstances of collision."
+  },
+  {
+    "date": "2025-04-23 14:52:16",
+    "user_name": "Jennifer Chang",
+    "case_number": "CA-2024-123789",
+    "policy_number": "102129544",
+    "vin": "1FATP8UH3K5159877",
+    "car_model": "mustang",
+    "action": "Rejected",
+    "comments": "Damage pattern inconsistent with reported low-speed incident. Police report confirms high-speed collision. Claim denied due to misrepresentation."
+  },
+  {
+    "date": "2025-04-21 11:05:37",
+    "user_name": "David Wilson",
+    "case_number": "CA-2024-124012",
+    "policy_number": "102129788",
+    "vin": "5TDKK3DC2CS289155",
+    "car_model": "sienna",
+    "action": "Approved",
+    "comments": "Damage consistent with reported incident. All documentation verified. Approved for repairs with preferred network shop."
+  }
+]

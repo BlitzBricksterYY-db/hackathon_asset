@@ -1,0 +1,53 @@
+[project]
+name = "staffing-optimization"
+dynamic = ["version"]
+description = "Workforce optimization application using NVIDIA cuOpt on Databricks"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.119.0",
+    "pydantic-settings>=2.11.0",
+    "python-dotenv>=1.0.0",
+    "uvicorn>=0.37.0",
+    "databricks-sdk>=0.74.0",
+    "sqlmodel>=0.0.22",
+    "psycopg2-binary>=2.9.9",
+    "python-multipart>=0.0.9",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.406",
+    "pytest>=8.0",
+]
+
+[tool.apx.metadata]
+app-name = "staffing-optimization"
+app-slug = "staffing_optimization"
+app-module = "staffing_optimization.backend.app:app"
+api-prefix = "/api"
+metadata-path = "src/staffing_optimization/_metadata.py"
+
+[tool.apx.ui]
+root = "src/staffing_optimization/ui"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.7.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+format-jinja = "{{version}}"
+
+[tool.hatch.build.hooks.version]
+path = "src/staffing_optimization/_version.py"
+template = '''
+version = "{version}"
+'''
+
+[tool.hatch.build]
+artifacts = ["src/staffing_optimization/__dist__", "src/staffing_optimization/_metadata.py"]
+exclude = ["src/staffing_optimization/ui"]

@@ -1,0 +1,163 @@
+---
+alwaysApply: true
+---
+
+# Cursor Agent Rules
+
+# Do's and Don'ts
+- If the apx development servers are started and running, don't regenerate the OpenAPI client.
+- Prefer running apx related commands via mcp server if it's available.
+- Prefer to add new components via shadcn mcp server if it's available.
+- When using the API calls on the frontend, use error boundaries to handle errors.
+- Run apx dev check command (via CLI or via mcp) to check for errors in the project code after making changes.
+- If agent has access to native browser tool, use it to verify changes on the frontend. If such tool is not present or is not working, use playwright mcp to automate browser actions (e.g. screenshots, clicks, etc.).
+- Avoid unnecessary restarts of the development servers
+- **Databricks SDK:** Use the apx MCP tools (`search_databricks_sdk`, `get_method_spec`, `get_model_spec`) to look up Databricks SDK methods and models instead of guessing or hallucinating API signatures.
+
+## Deployment
+
+### One-command deploy
+The bundle creates the app, job, SQL warehouse, Lakebase resources, and UC schema. Deploy with:
+
+```bash
+databricks bundle deploy -t dev -p DEFAULT --var default_catalog=demos
+```
+
+The catalog must already exist. The app's service principal gets permissions via app.resources (job, warehouse, database).
+
+### Critical: source-code-path must end in `.build`
+- `.build/` contains the installable `staffing_optimization/` package, `app.yml`, and `requirements.txt`.
+- Deploying from the parent `files/` directory causes `ModuleNotFoundError: No module named 'staffing_optimization'` because the package isn't at the expected path.
+- **Never** use `apps stop` + `apps start` for routine updates; `apps deploy` is faster.
+
+### Bundle wiring
+- Job ID and SQL warehouse ID are injected into the app via bundle resource bindings (`valueFrom`).
+- The app's service principal gets CAN_MANAGE_RUN on the job and CAN_CONNECT_AND_CREATE on Lakebase via app.resources.
+
+### Job parameters (not notebook_params)
+- The bundle-deployed job uses `job_parameters`, **not** `notebook_params`. Calling `run_now()` with `notebook_params` will fail with `Cannot use legacy parameters`.
+- Pass `config_json`, `run_id`, `results_table`, and `owner_user` as `job_parameters={"key": "value"}`.
+
+## Backend Patterns
+
+### Run status refresh
+- `get_run()` auto-refreshes status from Databricks for both `RUNNING` and `PENDING` runs (not just `RUNNING`).
+- There is a dedicated `POST /runs/{run_id}/refresh` endpoint that force-refreshes from Databricks regardless of current status.
+- The frontend Refresh button should always call `refreshRunStatus()` (the dedicated POST endpoint), not just re-fetch cached data via `getRun()`.
+- If a run has no `databricks_run_id` but is in an active state, mark it `FAILED` immediately so the UI stops spinning.
+
+### Deleting configs with child runs
+- Always delete child `optimization_runs` before deleting the parent `optimization_configs` row to avoid FK violations in Lakebase/Postgres.
+
+### Sample data generation at scale
+- Use SQL-native `CROSS JOIN` + `WHERE rand() < pct` on the SQL Warehouse for availability generation instead of building large Python lists in the app process.
+- Each dataset size (small/medium/large/enterprise) gets its own table suffix (e.g., `workers_small`, `shifts_large`).
+
+### Unity Catalog schema creation
+- The app's service principal may not have `CREATE SCHEMA` on the catalog. Always use `CREATE SCHEMA IF NOT EXISTS` and handle permission errors gracefully since the schema likely already exists.
+
+## Frontend Patterns
+
+### Clickable table rows
+- Make entire `<TableRow>` elements clickable with `onClick` + `useNavigate` and `cursor-pointer` class for navigation.
+- Use `e.stopPropagation()` on action buttons (cancel, delete) within the row to prevent row-click navigation.
+- Remove redundant "view" icon buttons when the row itself is clickable.
+
+### User-scoped data
+- Configs and runs are filtered by `owner_user` (derived from OBO token's `current_user.me().user_name`).
+- Legacy rows with `owner_user IS NULL` are hidden when a user filter is active.
+
+## Package Management
+- **Frontend:** Always use `bun` (never `npm`)
+- **Python:** Always use `uv` (never `pip`)
+
+## Component Management
+- **Adding components:** When adding a new component via CLI command, always add `--yes` flag to skip confirmation
+- **Component location:** If component was added to a wrong location (e.g. stored into `src/components` instead of `src/staffing-optimization/ui/components`), move it to the proper folder
+- **Component organization:** Prefer grouping components by functionality rather than by file type (e.g. `src/staffing-optimization/ui/components/chat/`)
+
+## Project Structure
+Full-stack app: `src/staffing-optimization/ui/` (React + Vite) and `src/staffing-optimization/backend/` (FastAPI). Backend serves frontend at `/` and API at `/api`. API client auto-generated via `orval`.
+
+## Databricks Notebooks & Jobs
+
+### Notebooks
+- **No SparkSession creation needed:** Databricks notebooks have `spark` pre-initialized. Never use `SparkSession.builder.getOrCreate()`.
+- **Use .ipynb format:** To preserve GPU/environment metadata, use `.ipynb` format with proper metadata block.
+- **Notebook metadata for GPU:** Include `computePreferences.hardware.accelerator` and `environmentMetadata.environment_version: "4"` for serverless GPU.
+
+### Serverless GPU Jobs
+- **Environment version:** Use `client="4"` for Serverless GPU Environment Version 4 (required for cuOpt).
+- **cuOpt dependencies:** Must install all three packages: `cuopt-server-cu12`, `cuopt-sh-client`, `cuopt-cu12==25.8.*` with `--extra-index-url=https://pypi.nvidia.com`.
+- **Job submission:** When creating jobs via SDK, always specify the environment in `JobEnvironment` with `spec=Environment(client="4", dependencies=[...])`.
+- **No app callbacks:** Notebooks submitted as jobs cannot access the app URL. Write results to Delta tables and read via SDK.
+
+### Example GPU Job Environment (in databricks_service.py):
+```python
+from databricks.sdk.service.jobs import Task, NotebookTask, JobEnvironment
+from databricks.sdk.service.compute import Environment
+
+environments=[
+    JobEnvironment(
+        environment_key="cuopt_gpu_env",
+        spec=Environment(
+            client="4",  # GPU environment version 4
+            dependencies=[
+                "cuopt-server-cu12",
+                "cuopt-sh-client",
+                "cuopt-cu12==25.8.*"
+            ]
+        )
+    )
+]
+```
+
+
+## Models & API
+- **3-model pattern:** `Entity` (DB), `EntityIn` (input), `EntityOut` (output)
+- **API routes must have:** `response_model` and `operation_id` for client generation
+
+## Frontend Rules
+- **Routing:** `@tanstack/react-router` (routes in `src/staffing-optimization/ui/routes/`)
+- **Data fetching:** Always use `useXSuspense` hooks with `Suspense` and `Skeleton` components
+- **Pattern:** Render static elements immediately, fetch API data with suspense
+- **Components:** Use shadcn/ui, add to `src/staffing-optimization/ui/components/`
+- **Data access:** Use `selector()` function for clean destructuring (e.g., `const {data: profile} = useProfileSuspense(selector())`)
+
+## Development Commands
+
+**Start dev servers** (backend, frontend, OpenAPI watcher):
+```bash
+uv run apx dev start
+```
+
+**Check status** (shows running servers and ports):
+```bash
+uv run apx dev status
+```
+
+**View logs** (stored in `~/.apx/{app_id}/logs/`):
+```bash
+uv run apx dev logs              # All logs
+uv run apx dev logs --ui         # Frontend only
+uv run apx dev logs --backend    # Backend only
+uv run apx dev tail              # Live stream
+```
+
+**Stop servers:**
+```bash
+uv run apx dev stop
+```
+
+**Build for production:**
+```bash
+uv run apx build
+```
+
+**OpenAPI generation** (auto-runs on each change with `dev start`):
+```bash
+uv run apx openapi               # Generate once
+uv run apx openapi --watch       # Watch mode
+```
+
+**Note:** The OpenAPI watcher runs automatically with `dev start`. Manual generation is rarely needed.

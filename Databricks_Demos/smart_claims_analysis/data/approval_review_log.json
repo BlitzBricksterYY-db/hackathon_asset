@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2025-03-28 15:23:17",
+    "user_name": "Stephen Hsu",
+    "claim_number": "7d482e31-b4a5-4c8e-9f2b-8e4d2c1a9b3f",
+    "action": "Model results submitted",
+    "comments": ""
+  },
+  {
+    "date": "2025-04-10 09:24:30",
+    "user_name": "Suman Misra",
+    "claim_number": "9a3f5d12-e8b7-4f2d-ae6c-1b5c8d4e7a9f",
+    "action": "Rejected",
+    "comments": "Review negative payoffs in DBRU"
+  },
+  {
+    "date": "2025-04-11 11:03:43",
+    "user_name": "Shirly Wang",
+    "claim_number": "5b2e8f4a-c9d6-4e7b-91a3-2f8c5d6e9b4a",
+    "action": "Model results submitted",
+    "comments": ""
+  }
+]

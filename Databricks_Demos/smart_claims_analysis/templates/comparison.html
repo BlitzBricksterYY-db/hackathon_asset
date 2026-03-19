@@ -1,0 +1,611 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<main role="main" class="col-md-9 col-lg-10 px-md-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h1">Vehicle Comparison 🔍</h1>
+    </div>
+
+    <!-- Welcome Message -->
+    <div id="welcome-message" class="alert alert-light rounded shadow-sm p-4 mb-4">
+        Welcome, {{ user_name }}. The Vehicle Analysis Center helps you investigate vehicle damage claims through systematic image comparison. Compare pre- and post-incident conditions, utilize AI-powered damage detection, and verify vehicle details including VIN and policy information. Document your findings to support thorough claim investigations.
+    </div>
+
+    <section>
+        <div class="form-group">
+            <label for="car-model"><strong>Select Case: </strong></label>
+            <select class="form-control custom-select" id="car-model" name="car_model">
+                {% for item in all_claims %}
+                <option value="{{ item.model }}" {% if selected_model == item.model %}selected{% endif %}>
+                    {{ item.case_number }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12 mb-3">
+                {% for item in data %}
+                <div class="alert alert-light rounded shadow-sm">
+                    <strong>Case #:</strong> {{ item.case_number }} &nbsp;|&nbsp;
+                    <strong>Policy #:</strong> {{ item.policy_number }} &nbsp;|&nbsp; 
+                    <strong>Vehicle:</strong> {{ item.name }} &nbsp;|&nbsp;
+                    <strong>VIN:</strong> {{ item.vin }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="col-md-6 d-flex flex-column">
+                <h2 class="h4">Previous Condition</h2>
+                <div class="comparison-container">
+                    {% for item in data %}
+                    <div class="comparison-image-wrapper">
+                        <!-- Loading State -->
+                        <div class="comparison-loading">
+                            <div class="comparison-spinner"></div>
+                            <span class="loading-text">Loading image...</span>
+                        </div>
+                        
+                        <!-- Image Label -->
+                        <div class="image-label">Previous State</div>
+                        
+                        <!-- Image -->
+                        <img 
+                            src="{{ item.image_url1 }}?t={{ range(1, 1000000) | random }}" 
+                            alt="Previous Condition"
+                            class="comparison-image"
+                            loading="lazy"
+                            data-state="previous"
+                        >
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-md-6 d-flex flex-column">
+                <h2 class="h4">Current Condition</h2>
+                <div class="comparison-container">
+                    {% for item in data %}
+                    <div class="comparison-image-wrapper">
+                        <!-- Loading State -->
+                        <div class="comparison-loading">
+                            <div class="comparison-spinner"></div>
+                            <span class="loading-text">Loading image...</span>
+                        </div>
+                        
+                        <!-- Image Label -->
+                        <div class="image-label">Current State</div>
+                        
+                        <!-- Image -->
+                        <img 
+                            src="{{ item.image_url2 }}?t={{ range(1, 1000000) | random }}" 
+                            alt="Current Condition"
+                            class="comparison-image"
+                            loading="lazy"
+                            data-state="current"
+                        >
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4 mb-4">
+            <button id="analyze-button" class="btn btn-primary analyze-button">
+                <span class="button-text">Generate Analysis</span>
+                <div class="button-loader d-none">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span class="ms-2">Analyzing...</span>
+                </div>
+            </button>
+        </div>
+
+        <div id="analysis-section" class="analysis-container d-none">
+            <label for="analysis-text"><strong>AI Analysis Results: </strong></label>
+            <textarea class="form-control" id="analysis-text" rows="5" style="width: 100%;" readonly></textarea>
+        </div>
+
+        <form id="comparisonForm" action="/submit_comparison" method="post">
+            <input type="hidden" name="car_model" value="{{ selected_model }}">
+            <input type="hidden" name="user_name" value="{{ user_name }}">
+            
+            <div class="form-group mt-3">
+                <label for="action"><strong>Action: </strong><span class="text-danger">*</span></label>
+                <select class="form-control" id="action" name="action" required>
+                    <option value="">Select Action</option>
+                    <option value="Approved">Approve</option>
+                    <option value="Rejected">Reject</option>
+                    <option value="Further Investigation">Further Investigation</option>
+                </select>
+            </div>
+            
+            <div class="form-group mt-3">
+                <label for="comments"><strong>Comments: </strong></label>
+                <textarea class="form-control" id="comments" name="comments" rows="3" style="width: 100%;"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary mt-3" style="width: 80px;">Submit</button>
+        </form>
+
+        <div class="mt-5">
+            <h2 class="h4">Review Log</h2>
+            <table class="table table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>User Name</th>
+                        <th>Case #</th>
+                        <th>Policy #</th>
+                        <th>Vehicle</th>
+                        <th>VIN</th>
+                        <th class="text-center">Status</th>
+                        <th>Comments</th>
+                        <th class="text-center" style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in comparison_review_log %}
+                    <tr data-date="{{ log.date }}">
+                        <td>{{ log.date }}</td>
+                        <td>{{ log.user_name }}</td>
+                        <td>{{ log.case_number }}</td>
+                        <td>{{ log.policy_number }}</td>
+                        <td>{{ log.car_model }}</td>
+                        <td>{{ log.vin }}</td>
+                        <td class="text-center">
+                            {% if log.action == 'Approved' %}
+                            <span class="status-badge status-approved">
+                                <i class="fas fa-check-circle"></i>
+                                Approved
+                            </span>
+                            {% elif log.action == 'Rejected' %}
+                            <span class="status-badge status-rejected">
+                                <i class="fas fa-times-circle"></i>
+                                Rejected
+                            </span>
+                            {% else %}
+                            <span class="status-badge status-review">
+                                <i class="fas fa-search"></i>
+                                Further Investigation
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.comments }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-link btn-sm delete-entry p-0" style="color: #718096;" title="Delete entry">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('car-model').addEventListener('change', function () {
+                const selected = this.value;
+                window.location.href = '/comparison?car_model=' + selected;
+            });
+            
+            const analyzeButton = document.getElementById('analyze-button');
+            const analysisSection = document.getElementById('analysis-section');
+            const analysisText = document.getElementById('analysis-text');
+            const form = document.getElementById('comparisonForm');
+            
+            // Handle analysis button click
+            analyzeButton.addEventListener('click', async function() {
+                try {
+                    // Disable button and show loading state
+                    analyzeButton.disabled = true;
+                    analyzeButton.querySelector('.button-text').classList.add('d-none');
+                    analyzeButton.querySelector('.button-loader').classList.remove('d-none');
+                    
+                    // Get the selected car model
+                    const carModel = document.querySelector('input[name="car_model"]').value;
+                    
+                    // Send analysis request
+                    const response = await fetch('/generate_comparison_analysis', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `car_model=${encodeURIComponent(carModel)}`
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Show the analysis section with a smooth transition
+                        analysisSection.classList.remove('d-none');
+                        analysisText.value = data.analysis;
+                        
+                        // Scroll the analysis section into view smoothly
+                        analysisSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        
+                        // Update button state to show completion
+                        analyzeButton.querySelector('.button-loader').classList.add('d-none');
+                        analyzeButton.querySelector('.button-text').textContent = 'Analysis Complete ✓';
+                        analyzeButton.querySelector('.button-text').classList.remove('d-none');
+                        
+                        // Add success styling to button
+                        analyzeButton.classList.remove('btn-primary');
+                        analyzeButton.classList.add('btn-success');
+                    } else {
+                        throw new Error(data.error || 'Failed to generate analysis');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    // Show error message
+                    showToast('Error', 'Failed to generate analysis. Please try again.', 'error');
+                    
+                    // Reset button state
+                    analyzeButton.disabled = false;
+                    analyzeButton.querySelector('.button-text').classList.remove('d-none');
+                    analyzeButton.querySelector('.button-loader').classList.add('d-none');
+                    analyzeButton.querySelector('.button-text').textContent = 'Generate Analysis';
+                    analyzeButton.classList.remove('btn-success');
+                    analyzeButton.classList.add('btn-primary');
+                }
+            });
+            
+            // Handle form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                
+                fetch('/submit_comparison', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Add new entry to the review log table
+                        const tbody = document.querySelector('tbody');
+                        const newRow = document.createElement('tr');
+                        newRow.classList.add('new-entry');
+                        newRow.dataset.date = data.entry.date;
+                        
+                        let statusHTML = '';
+                        switch(formData.get('action')) {
+                            case 'Approved':
+                                statusHTML = `
+                                    <span class="status-badge status-approved">
+                                        <i class="fas fa-check-circle"></i>
+                                        Approved
+                                    </span>
+                                `;
+                                break;
+                            case 'Rejected':
+                                statusHTML = `
+                                    <span class="status-badge status-rejected">
+                                        <i class="fas fa-times-circle"></i>
+                                        Rejected
+                                    </span>
+                                `;
+                                break;
+                            default:
+                                statusHTML = `
+                                    <span class="status-badge status-review">
+                                        <i class="fas fa-search"></i>
+                                        Further Investigation
+                                    </span>
+                                `;
+                        }
+                        
+                        newRow.innerHTML = `
+                            <td>${data.entry.date}</td>
+                            <td>${data.entry.user_name}</td>
+                            <td>${data.entry.case_number}</td>
+                            <td>${data.entry.policy_number}</td>
+                            <td>${data.entry.car_model}</td>
+                            <td>${data.entry.vin}</td>
+                            <td class="text-center">${statusHTML}</td>
+                            <td>${data.entry.comments}</td>
+                            <td class="text-center">
+                                <button class="btn btn-link btn-sm delete-entry p-0" style="color: #718096;" title="Delete entry">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        `;
+                        
+                        tbody.insertBefore(newRow, tbody.firstChild);
+                        
+                        // Add delete handler to the new row
+                        const deleteButton = newRow.querySelector('.delete-entry');
+                        if (deleteButton) {
+                            addDeleteHandler(deleteButton);
+                        }
+                        
+                        // Reset form
+                        form.reset();
+                        
+                        // Reset car model value
+                        document.querySelector('input[name="car_model"]').value = '{{ selected_model }}';
+                        
+                        showToast('Success', 'Review submitted successfully!', 'success');
+                    } else {
+                        throw new Error(data.error || 'Failed to submit review');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error', 'Failed to submit review. Please try again.', 'error');
+                });
+            });
+
+            // Handle image loading
+            document.querySelectorAll('.comparison-image').forEach(img => {
+                // Show loading spinner until image is loaded
+                img.addEventListener('load', function() {
+                    // Hide loading state
+                    const loadingState = this.parentElement.querySelector('.comparison-loading');
+                    loadingState.style.display = 'none';
+                    
+                    // Show image with fade-in effect
+                    this.classList.add('loaded');
+                });
+
+                // Handle loading errors
+                img.addEventListener('error', function() {
+                    const loadingState = this.parentElement.querySelector('.comparison-loading');
+                    loadingState.style.display = 'none';
+                    
+                    // Show error state
+                    this.parentElement.innerHTML += `
+                        <div class="text-center text-muted" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                            <i class="fas fa-exclamation-circle" style="font-size: 48px;"></i>
+                            <p class="mt-2">Failed to load image</p>
+                        </div>
+                    `;
+                });
+            });
+
+            // Delete entry handler
+            function addDeleteHandler(button) {
+                button.addEventListener('click', function(e) {
+                    const row = this.closest('tr');
+                    const date = row.dataset.date;
+                    
+                    fetch('/delete_review_entry', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            log_type: 'comparison',
+                            date: date
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Add fade-out animation
+                            row.style.transition = 'opacity 0.3s ease';
+                            row.style.opacity = '0';
+                            
+                            // Remove row after animation
+                            setTimeout(() => {
+                                row.remove();
+                            }, 300);
+                            
+                            showToast('Success', 'Entry deleted successfully!', 'success');
+                        } else {
+                            throw new Error(data.error || 'Failed to delete entry');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error', error.message || 'Failed to delete entry', 'error');
+                    });
+                });
+            }
+
+            // Add delete handlers to all delete buttons
+            document.querySelectorAll('.delete-entry').forEach(button => {
+                addDeleteHandler(button);
+            });
+
+            // Toast helper function
+            function showToast(title, message, type) {
+                const toastHTML = `
+                    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header bg-${type === 'success' ? 'success' : 'danger'} text-white">
+                                <strong class="me-auto">${title}</strong>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                            </div>
+                            <div class="toast-body">
+                                ${message}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', toastHTML);
+                
+                // Remove toast after 3 seconds
+                setTimeout(() => {
+                    document.querySelector('.toast-container').remove();
+                }, 3000);
+            }
+
+            // Add visibility change handler
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    // Page is now visible, reload images
+                    document.querySelectorAll('.comparison-image').forEach(img => {
+                        const originalSrc = img.src.split('?')[0];
+                        img.src = originalSrc + '?t=' + new Date().getTime();
+                    });
+                }
+            });
+
+            // Handle tab switching via URL changes
+            window.addEventListener('popstate', function() {
+                // Reload images when using browser back/forward
+                document.querySelectorAll('.comparison-image').forEach(img => {
+                    const originalSrc = img.src.split('?')[0];
+                    img.src = originalSrc + '?t=' + new Date().getTime();
+                });
+            });
+
+            // Handle car model selection change
+            document.getElementById('car-model').addEventListener('change', function() {
+                // Let the normal navigation happen, but store that we're changing models
+                sessionStorage.setItem('modelChanged', 'true');
+            });
+
+            // Check if we need to reload images after model change
+            if (sessionStorage.getItem('modelChanged') === 'true') {
+                sessionStorage.removeItem('modelChanged');
+                // Add a small delay to ensure the new images are in the DOM
+                setTimeout(() => {
+                    document.querySelectorAll('.comparison-image').forEach(img => {
+                        const originalSrc = img.src.split('?')[0];
+                        img.src = originalSrc + '?t=' + new Date().getTime();
+                    });
+                }, 100);
+            }
+        });
+    </script>
+
+    <style>
+        .toast-container {
+            z-index: 1050;
+        }
+
+        .analysis-container {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .analysis-container:not(.d-none) {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .button-loader {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .button-text {
+            transition: all 0.3s ease;
+        }
+
+        .btn-success {
+            background-color: #48BB78;
+            border-color: #48BB78;
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            background-color: #38A169;
+            border-color: #38A169;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .status-badge i {
+            margin-right: 0.5rem;
+            font-size: 1rem;
+        }
+
+        /* Approved Status */
+        .status-approved {
+            background-color: rgba(72, 187, 120, 0.1);
+            color: #2F855A;
+            border: 1px solid rgba(72, 187, 120, 0.2);
+        }
+
+        .status-approved:hover {
+            background-color: rgba(72, 187, 120, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Rejected Status */
+        .status-rejected {
+            background-color: rgba(245, 101, 101, 0.1);
+            color: #C53030;
+            border: 1px solid rgba(245, 101, 101, 0.2);
+        }
+
+        .status-rejected:hover {
+            background-color: rgba(245, 101, 101, 0.15);
+            transform: translateY(-1px);
+        }
+
+        /* Review Status */
+        .status-review {
+            background-color: rgba(255, 214, 10, 0.15);
+            color: #B45309;
+            border: 1px solid rgba(255, 214, 10, 0.3);
+        }
+
+        .status-review:hover {
+            background-color: rgba(255, 214, 10, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Table Enhancements */
+        .table td {
+            vertical-align: middle;
+        }
+
+        /* Animation for new entries */
+        @keyframes highlightNew {
+            from {
+                background-color: rgba(66, 153, 225, 0.1);
+            }
+            to {
+                background-color: transparent;
+            }
+        }
+
+        .table tr.new-entry {
+            animation: highlightNew 2s ease-out;
+        }
+
+        /* Delete button hover effect */
+        .delete-entry {
+            opacity: 0.5;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .delete-entry:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        tr:hover .delete-entry {
+            opacity: 0.8;
+        }
+
+        .alert {
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .alert strong {
+            color: #4A5568;
+        }
+    </style>
+</main>
+{% endblock %} 

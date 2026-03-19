@@ -1,0 +1,3 @@
+env:
+  - name: GENIE_DBAPP_URL
+    value: https://wfm-genie-app-2556758628403379.aws.databricksapps.com

@@ -1,0 +1,14 @@
+command: [
+  "flask",
+  "--app",
+  "app.py",
+  "run"
+]
+
+env:
+  - name: DATABRICKS_GENIE_SPACE_ID_APEX
+    value: '01ef1221fd6d1735be8b6347f457d651'
+  - name: DATABRICKS_GENIE_SPACE_ID_SYNERGY
+    value: '01ef1221fd6d1735be8b6347f457d651'
+  - name: DATABRICKS_DASHBOARD_ID
+    value: '01f04164b1a71985baab0cfab546cf8f'
